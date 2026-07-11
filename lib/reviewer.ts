@@ -19,7 +19,7 @@ const REGISTRY = (() => {
     if (idx > 0) map.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
   }
   const demo = process.env.SEKISHO_DEMO_REVIEWER_TOKEN;
-  if (demo) map.set(demo.trim(), "デモ審査レビュアー");
+  if (demo) map.set(demo.trim(), "デモ審査レビュアー（公開デモ用・非実在）");
   return map;
 })();
 

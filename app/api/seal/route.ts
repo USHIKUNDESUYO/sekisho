@@ -59,8 +59,14 @@ export async function POST(req: NextRequest) {
       diffSha256: body.diffSha256,
       challenges: body.challenges,
       notExamined: body.notExamined || [],
-      // decidedAt はサーバー刻印（クライアントの自称時刻は信じない）
-      dispositions: body.dispositions.map((d) => ({ ...d, decidedAt: now })),
+      dispositions: body.dispositions.map((d) => ({
+        ...d,
+        // 裁き手の身元は認証済みレビュアー名に束ねる（トークン保持者でも他人名義は詐称できない）。
+        // 未認証の裁きは自称のまま記録されるが、ゲートは別途403で止める。
+        decidedBy: reviewer.attested ? reviewer.name! : d.decidedBy,
+        // decidedAt はサーバー刻印（クライアントの自称時刻は信じない）
+        decidedAt: now,
+      })),
       source,
       reviewerAttested: reviewer.attested,
       reviewerName: reviewer.name,

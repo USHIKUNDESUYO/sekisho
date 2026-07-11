@@ -402,7 +402,7 @@ export default function Home() {
                 </div>
                 <div style={{ display: "flex", alignItems: "flex-end" }}>
                   <p className="fld" style={{ margin: 0, lineHeight: 1.5 }}>
-                    トークン無しでも手形は台帳に残りますが、<b>本番ゲートは開きません</b>（未認証の裁き＝AI/自動承認を排除）。
+                    トークン無しの裁きは台帳に残るが<b>本番ゲートは開かない</b>。裁き手名はトークンに束ねて記録されます（他人名義の詐称不可）。
                   </p>
                 </div>
               </div>
