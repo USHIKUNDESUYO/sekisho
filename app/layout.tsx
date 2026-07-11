@@ -3,9 +3,15 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sekisho-98982533733.asia-northeast1.run.app"),
   title: "SEKISHO（関所） — AIは承認しない。反証だけを返すデプロイ関所",
   description:
     "監査の規律をDevOpsへ。番人と目付の二段Geminiエージェントが証拠アンカー付きの反証だけを返し、人間が全反証を裁いて初めて通行手形（ハッシュチェーン証跡）が発行され、CI/CDゲートが開く。",
+  openGraph: {
+    title: "SEKISHO（関所） — AIは、承認しない。",
+    description: "反証だけを返すデプロイ関所。人間が全反証を裁いて、はじめてCI/CDの関が開く。",
+    images: ["/ogp.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

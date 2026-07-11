@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --test tests/ledger.test.ts"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.6.0",
