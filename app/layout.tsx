@@ -17,14 +17,24 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
-        <div className="wrap">
-          <header className="site-header">
-            <div className="seal-mark">関</div>
-            <div className="site-title">
-              SEKISHO
-              <small>反証専従デプロイ関所</small>
-            </div>
+        <header className="site-header">
+          <div className="header-inner">
+            <Link href="/" className="brand">
+              <span className="seal-mark">関</span>
+              <span className="site-title">
+                SEKISHO
+                <small>反証専従デプロイ関所</small>
+              </span>
+            </Link>
             <nav className="header-nav">
               <Link href="/">関所</Link>
               <Link href="/ledger">通行台帳</Link>
@@ -32,13 +42,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 GitHub
               </a>
             </nav>
-          </header>
-          {children}
-          <footer className="site-footer">
+          </div>
+        </header>
+        {children}
+        <footer className="site-footer">
+          <div className="footer-inner">
             <span>SEKISHO — DevOps × AI Agent Hackathon 2026 応募作品（星野宇潮）</span>
-            <span>AIは結論を書かない。判断と署名は、人に残す。</span>
-          </footer>
-        </div>
+            <span className="footer-motto">AIは結論を書かない。判断と署名は、人に残す。</span>
+          </div>
+        </footer>
       </body>
     </html>
   );

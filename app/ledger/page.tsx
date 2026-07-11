@@ -13,8 +13,8 @@ export default async function LedgerPage() {
   const items = [...ledger].reverse();
 
   return (
-    <main>
-      <section className="hero">
+    <main className="wrap">
+      <section className="page-head">
         <h1>通行台帳</h1>
         <p className="lead">
           発行された全ての通行手形。各手形は直前の手形のハッシュを抱いて鎖になっており、

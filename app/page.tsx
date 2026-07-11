@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SAMPLE_DIFF } from "@/lib/sample";
 import type { AgentStep, Challenge, Disposition, DroppedChallenge, Tegata } from "@/lib/types";
 
@@ -34,6 +34,44 @@ export default function Home() {
   const [result, setResult] = useState<RefuteResponse | null>(null);
   const [judgments, setJudgments] = useState<Record<string, { verdict?: Disposition["verdict"]; reason: string }>>({});
   const [tegata, setTegata] = useState<Tegata | null>(null);
+
+  // ?demo=1 でサンプルdiffの反証状態を自動表示（撮影・審査員のクイックビュー用。応答はサンプルと明示される）
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!new URLSearchParams(window.location.search).has("demo")) return;
+    setDiff(SAMPLE_DIFF);
+    setService("billing-api");
+    setName("星野宇潮");
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/refute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ diff: SAMPLE_DIFF, service: "billing-api", target: "production", forceSample: true }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setResult(data);
+          // 裁きも事前入力（デモ・撮影用。発行は人間のクリックが必要なまま）
+          const demoReasons = [
+            "冪等キーをcharge呼び出しに付与するPR #124を先行マージ済み。二重課金は発生しない",
+            "DB側max_connections=200・アプリ2台構成で余裕あり。接続数70%の監視アラート設定済みのため受容",
+            "ordersは12万行・ステージング実測3.2秒。メンテナンスウィンドウ内で実行するよう手順に追記済み",
+            "決済APIのp99は820ms（直近30日）。1500msは十分な余裕だが月末ピークは監視する前提で受容",
+          ];
+          const verdicts: Disposition["verdict"][] = ["addressed", "accepted", "addressed", "accepted"];
+          const pre: Record<string, { verdict?: Disposition["verdict"]; reason: string }> = {};
+          (data.challenges || []).forEach((c: Challenge, i: number) => {
+            pre[c.id] = { verdict: verdicts[i % verdicts.length], reason: demoReasons[i % demoReasons.length] };
+          });
+          setJudgments(pre);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const decidedCount = useMemo(() => {
     if (!result) return 0;
@@ -115,29 +153,39 @@ export default function Home() {
 
   return (
     <main>
-      <section className="hero">
-        <h1>
-          AIは、<span className="shu">承認しない。</span>
-          <br />
-          反証だけを返すデプロイ関所。
-        </h1>
-        <p className="lead">
-          AIがコードを書き、AIがコードをLGTMする時代——「考えたのは誰か」に答えられますか。
-          関所の<b>番人</b>と<b>目付</b>（二段のGeminiエージェント）は合格も点数も出しません。
-          diffへの<b>反証（証拠アンカー付き）</b>だけを返し、人間が全件を裁いて初めて
-          <b>通行手形</b>（改竄検知つき証跡）が発行され、CI/CDの関が開きます。
-          会計監査の現場で磨かれた「判断の証跡」の規律の、DevOpsへの移植です。
-        </p>
-        <div className="kata">
-          <span>承認しない（LGTMを構造的に持たない）</span>
-          <span>網羅を名乗らない（見ていないものを申告する）</span>
-          <span>判断を残す（誰が・いつ・何を根拠に）</span>
+      <section className="hero-band">
+        <div className="hero-watermark" aria-hidden>
+          関
         </div>
+        <div className="hero-vertical" aria-hidden>
+          反証専従・通行手形
+        </div>
+        <div className="wrap hero">
+          <p className="hero-eyebrow">DEPLOYMENT CHECKPOINT — 監査の規律を、DevOpsの門へ</p>
+          <h1>
+            AIは、<span className="shu">承認しない。</span>
+            <br />
+            反証だけを返すデプロイ関所。
+          </h1>
+          <p className="lead">
+            AIがコードを書き、AIがコードをLGTMする時代——「考えたのは誰か」に答えられますか。
+            関所の<b>番人</b>と<b>目付</b>（二段のGeminiエージェント）は合格も点数も出しません。
+            diffへの<b>反証（証拠アンカー付き）</b>だけを返し、人間が全件を裁いて初めて
+            <b>通行手形</b>（改竄検知つき証跡）が発行され、CI/CDの関が開きます。
+          </p>
+          <div className="kata">
+            <span>承認しない — LGTMを構造的に持たない</span>
+            <span>網羅を名乗らない — 見ていないものを申告する</span>
+            <span>判断を残す — 誰が・いつ・何を根拠に</span>
+          </div>
+        </div>
+        <div className="hero-wave" aria-hidden />
       </section>
 
+      <div className="wrap">
       <section className="section">
         <h2 className="section-title">
-          <span className="step">1</span>差し出す — デプロイするdiffを関所に掛ける
+          <span className="step">壱</span>差し出す<span className="section-sub">デプロイするdiffを関所に掛ける</span>
         </h2>
         <div className="card">
           <label className="fld" htmlFor="diff">
@@ -191,7 +239,7 @@ export default function Home() {
         <>
           <section className="section">
             <h2 className="section-title">
-              <span className="step">2</span>裁く — 番人の反証 {result.challenges.length}件（全件に理由が必要）
+              <span className="step">弐</span>裁く<span className="section-sub">番人の反証 {result.challenges.length}件・全件に理由が必要</span>
             </h2>
             <p className="src-note" style={{ marginBottom: 12 }}>
               {result.source === "live"
@@ -273,7 +321,7 @@ export default function Home() {
 
           <section className="section">
             <h2 className="section-title">
-              <span className="step">3</span>通す — 通行手形の発行
+              <span className="step">参</span>通す<span className="section-sub">通行手形の発行</span>
             </h2>
             <div className="card">
               <p className="progress">
@@ -349,6 +397,7 @@ export default function Home() {
           </p>
         </div>
       </section>
+      </div>
     </main>
   );
 }
