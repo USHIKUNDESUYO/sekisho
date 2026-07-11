@@ -101,6 +101,40 @@ body {
   padding: 5px 16px; border-radius: 999px; letter-spacing: 0.04em;
   background: rgba(12, 26, 44, 0.4);
 }
+.hero-motto {
+  margin-top: 26px;
+  font-family: var(--serif); font-size: 17px; letter-spacing: 0.16em;
+  color: var(--kin-soft); font-weight: 600;
+}
+.hero-actions { margin-top: 18px; align-items: center; gap: 20px; }
+.hero-proof {
+  font-size: 12.5px; color: #9fb2c6; text-decoration: none;
+  border-bottom: 1px dashed rgba(159, 178, 198, 0.5);
+  transition: color 0.2s, border-color 0.2s;
+  max-width: 460px; line-height: 1.7;
+}
+.hero-proof:hover { color: var(--kin-soft); border-color: var(--kin-soft); }
+
+/* ---- 進行劇場（待ち時間のエージェント可視化） ---- */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.theater {
+  margin-top: 18px; border-radius: 12px; padding: 18px 22px;
+  background: linear-gradient(165deg, var(--ai-night), var(--ai-deep));
+  border: 1px solid #24405f; color: #dfe6ee;
+}
+.theater-row {
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: 13.5px; padding: 5px 0; opacity: 0.45; transition: opacity 0.3s;
+}
+.theater-row.done { opacity: 0.8; }
+.theater-row.active { opacity: 1; }
+.theater-row.active .theater-mark { animation: pulse 1.1s ease-in-out infinite; color: var(--kin-soft); }
+.theater-row.done .theater-mark { color: #8fbf9f; }
+.theater-mark { width: 16px; flex: none; }
+.theater-agent { font-family: var(--serif); letter-spacing: 0.12em; color: #cdd9e5; }
+.theater-row.active .theater-agent { color: #fff; }
+.theater-text { color: #9fb2c6; }
+
 .hero-watermark {
   position: absolute; z-index: 1; right: -30px; top: 46%;
   transform: translateY(-50%) rotate(-4deg);

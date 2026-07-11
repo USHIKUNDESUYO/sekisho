@@ -10,6 +10,7 @@ process.env.SEKISHO_DATA_DIR = mkdtempSync(path.join(tmpdir(), "sekisho-test-"))
 process.env.SEKISHO_STORE = "file";
 
 const { canonicalize, sha256, issueTegata, verifyLedger, GENESIS } = await import("../lib/ledger.ts");
+const { signRefutation, verifyRefutation } = await import("../lib/attest.ts");
 
 const challenge = (id: string) => ({
   id,
@@ -52,6 +53,31 @@ test("手形はチェーンになり、検証を通る", async () => {
   const v = await verifyLedger();
   assert.equal(v.ok, true);
   assert.equal(v.count, 2);
+});
+
+test("反証ゼロの手形は発行できない（偽造封鎖）", async () => {
+  const bad = input(sha256("diff-empty"), "cx");
+  bad.challenges = [];
+  bad.dispositions = [];
+  await assert.rejects(() => issueTegata(bad), /反証ゼロ/);
+});
+
+test("反証セッション署名: 本物は通り、改変は落ちる", () => {
+  const payload = {
+    diffSha256: sha256("diff-a"),
+    challenges: [challenge("c9")],
+    notExamined: ["灰1"],
+    source: "live" as const,
+  };
+  const token = signRefutation(payload);
+  assert.equal(verifyRefutation(payload, token), true);
+  // 反証を1件でも改変・差し替えすれば署名は合わない
+  const forged = { ...payload, challenges: [{ ...challenge("c9"), claim: "無害な反証にすり替え" }] };
+  assert.equal(verifyRefutation(forged, token), false);
+  // 空の反証への署名転用も不可
+  const emptied = { ...payload, challenges: [] };
+  assert.equal(verifyRefutation(emptied, token), false);
+  assert.equal(verifyRefutation(payload, "deadbeef"), false);
 });
 
 test("台帳を1文字でも書き換えるとチェーンが壊れたと検知される", async () => {

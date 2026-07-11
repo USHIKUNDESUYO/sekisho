@@ -92,6 +92,9 @@ export interface IssueInput {
 
 /** 全反証が裁かれていることを検証してから手形を発行する。未裁きが残れば発行不可 */
 export async function issueTegata(input: IssueInput): Promise<Tegata> {
+  if (input.challenges.length === 0) {
+    throw new Error("反証ゼロの手形は発行できません。まず関所に掛けて反証を受けてください。");
+  }
   const undecided = input.challenges.filter(
     (c) => !input.dispositions.some((d) => d.challengeId === c.id && d.reason.trim().length > 0),
   );

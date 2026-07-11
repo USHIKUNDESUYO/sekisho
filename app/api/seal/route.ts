@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issueTegata } from "@/lib/ledger";
+import { verifyRefutation } from "@/lib/attest";
 import type { Challenge, Disposition, NotExamined } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -12,6 +13,7 @@ export async function POST(req: NextRequest) {
     notExamined?: NotExamined;
     dispositions?: Disposition[];
     source?: "live" | "sample";
+    attest?: string;
   };
   try {
     body = await req.json();
@@ -21,7 +23,28 @@ export async function POST(req: NextRequest) {
   if (!body.diffSha256 || !Array.isArray(body.challenges) || !Array.isArray(body.dispositions)) {
     return NextResponse.json({ error: "diffSha256 / challenges / dispositions は必須です" }, { status: 400 });
   }
+
+  // 反証セッションの署名検証 — /api/refute が発行した本物の反証一式でなければ手形は作れない。
+  // 偽の反証・改変した反証・空の反証をcurlで送り込む偽造経路をここで塞ぐ。
+  const source = body.source === "live" ? "live" : "sample";
+  const authentic = verifyRefutation(
+    {
+      diffSha256: body.diffSha256,
+      challenges: body.challenges,
+      notExamined: body.notExamined || [],
+      source,
+    },
+    body.attest || "",
+  );
+  if (!authentic) {
+    return NextResponse.json(
+      { error: "反証セッションの署名が検証できません。関所（/api/refute）が発行した反証一式のみ手形にできます。" },
+      { status: 403 },
+    );
+  }
+
   try {
+    const now = new Date().toISOString();
     const tegata = await issueTegata({
       context: {
         service: (body.context?.service || "unnamed-service").slice(0, 100),
@@ -31,11 +54,9 @@ export async function POST(req: NextRequest) {
       diffSha256: body.diffSha256,
       challenges: body.challenges,
       notExamined: body.notExamined || [],
-      dispositions: body.dispositions.map((d) => ({
-        ...d,
-        decidedAt: d.decidedAt || new Date().toISOString(),
-      })),
-      source: body.source === "live" ? "live" : "sample",
+      // decidedAt はサーバー刻印（クライアントの自称時刻は信じない）
+      dispositions: body.dispositions.map((d) => ({ ...d, decidedAt: now })),
+      source,
     });
     return NextResponse.json({ tegata });
   } catch (e) {

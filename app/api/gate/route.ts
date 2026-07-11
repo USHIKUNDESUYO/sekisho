@@ -24,6 +24,13 @@ export async function GET(req: NextRequest) {
       { status: 403 },
     );
   }
+  // サンプル応答（AI未接続）で裁いた手形は、既定では本番の関を開けない
+  if (tegata.source === "sample" && process.env.SEKISHO_GATE_ALLOW_SAMPLE !== "1") {
+    return NextResponse.json(
+      { pass: false, reason: "この手形はサンプル応答（AI未接続）に対するものです。本番ゲートはライブ反証の手形のみ通します。" },
+      { status: 403 },
+    );
+  }
   return NextResponse.json({
     pass: true,
     tegataId: tegata.id,

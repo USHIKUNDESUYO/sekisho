@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { refute, sampleRefute } from "@/lib/refute";
 import { fetchPrDiff } from "@/lib/hikyaku";
 import { sha256 } from "@/lib/ledger";
+import { signRefutation } from "@/lib/attest";
 
 export const runtime = "nodejs";
 
@@ -56,17 +57,21 @@ export async function POST(req: NextRequest) {
     service: (body.service || "unnamed-service").slice(0, 100),
     target: (body.target || "production").slice(0, 100),
   };
+  const diffSha256 = sha256(diff);
   try {
     const result = body.forceSample ? sampleRefute(diff) : await refute(diff, context);
-    return NextResponse.json({ ...result, trace: [...hikyakuTrace, ...result.trace], diff, diffSha256: sha256(diff) });
+    const attest = signRefutation({ diffSha256, challenges: result.challenges, notExamined: result.notExamined, source: result.source });
+    return NextResponse.json({ ...result, trace: [...hikyakuTrace, ...result.trace], diff, diffSha256, attest });
   } catch (e) {
     // ライブ呼び出しが失敗してもデモは止めない（正直にsourceで申告する）
     const fallback = sampleRefute(diff);
+    const attest = signRefutation({ diffSha256, challenges: fallback.challenges, notExamined: fallback.notExamined, source: fallback.source });
     return NextResponse.json({
       ...fallback,
       trace: [...hikyakuTrace, ...fallback.trace],
       diff,
-      diffSha256: sha256(diff),
+      diffSha256,
+      attest,
       warning: `AI呼び出しに失敗したためサンプル応答を返しました: ${e instanceof Error ? e.message : "unknown"}`,
     });
   }

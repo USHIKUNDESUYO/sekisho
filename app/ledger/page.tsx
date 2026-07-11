@@ -1,4 +1,5 @@
 import { readLedger, verifyLedger } from "@/lib/ledger";
+import VerifyButton from "./verify-button";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,9 @@ export default async function LedgerPage() {
             <span className="ng-badge">✗ {chain.detail}</span>
           )}
         </p>
+        <p style={{ marginTop: 14 }}>
+          <VerifyButton />
+        </p>
       </section>
 
       <section className="section">
@@ -42,6 +46,7 @@ export default async function LedgerPage() {
               <b>{t.context.service}</b> → {t.context.target} ／ {new Date(t.issuedAt).toLocaleString("ja-JP")} ／{" "}
               <code>{t.recordHash.slice(0, 16)}…</code>
               {t.source === "sample" ? "（サンプル応答）" : ""}
+              {t.prevHash === "GENESIS" ? " — 初番：この手形で本体のデプロイ(PR #1)が通行した" : ""}
             </summary>
             <div className="ledger-detail">
               <p>裁き手: {[...new Set(t.dispositions.map((d) => d.decidedBy))].join(", ")}</p>

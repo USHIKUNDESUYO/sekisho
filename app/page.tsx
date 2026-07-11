@@ -12,9 +12,16 @@ type RefuteResponse = {
   source: "live" | "sample";
   model: string | null;
   diffSha256: string;
+  attest: string;
   warning?: string;
   error?: string;
 };
+
+const THEATER_STAGES = [
+  { agent: "番人", text: "番人が diff を読み、反証を生成しています…", at: 0 },
+  { agent: "目付", text: "目付が反証を敵対的に検証しています（弱い反証は棄却されます）…", at: 12000 },
+  { agent: "照合方", text: "照合方が証拠アンカーを diff 本文と突合しています…", at: 19000 },
+];
 
 const VERDICT_LABEL: Record<Disposition["verdict"], string> = {
   addressed: "対応した",
@@ -34,43 +41,15 @@ export default function Home() {
   const [result, setResult] = useState<RefuteResponse | null>(null);
   const [judgments, setJudgments] = useState<Record<string, { verdict?: Disposition["verdict"]; reason: string }>>({});
   const [tegata, setTegata] = useState<Tegata | null>(null);
+  const [theaterStep, setTheaterStep] = useState(0);
+  const [usedPr, setUsedPr] = useState(false);
 
-  // ?demo=1 でサンプルdiffの反証状態を自動表示（撮影・審査員のクイックビュー用。応答はサンプルと明示される）
+  // ?demo=1 でも30秒デモを自動再生（撮影・審査員のクイックビュー用）
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!new URLSearchParams(window.location.search).has("demo")) return;
-    setDiff(SAMPLE_DIFF);
-    setService("billing-api");
-    setName("星野宇潮");
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/refute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ diff: SAMPLE_DIFF, service: "billing-api", target: "production", forceSample: true }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setResult(data);
-          // 裁きも事前入力（デモ・撮影用。発行は人間のクリックが必要なまま）
-          const demoReasons = [
-            "冪等キーをcharge呼び出しに付与するPR #124を先行マージ済み。二重課金は発生しない",
-            "DB側max_connections=200・アプリ2台構成で余裕あり。接続数70%の監視アラート設定済みのため受容",
-            "ordersは12万行・ステージング実測3.2秒。メンテナンスウィンドウ内で実行するよう手順に追記済み",
-            "決済APIのp99は820ms（直近30日）。1500msは十分な余裕だが月末ピークは監視する前提で受容",
-          ];
-          const verdicts: Disposition["verdict"][] = ["addressed", "accepted", "addressed", "accepted"];
-          const pre: Record<string, { verdict?: Disposition["verdict"]; reason: string }> = {};
-          (data.challenges || []).forEach((c: Challenge, i: number) => {
-            pre[c.id] = { verdict: verdicts[i % verdicts.length], reason: demoReasons[i % demoReasons.length] };
-          });
-          setJudgments(pre);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
+    startDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const decidedCount = useMemo(() => {
@@ -89,6 +68,10 @@ export default function Home() {
     setResult(null);
     setTegata(null);
     setJudgments({});
+    setUsedPr(!diff.trim() && !!prUrl.trim());
+    // 進行劇場: 待ち時間に二段エージェントの働きを見せる（実測msは完了後のトレースが正）
+    setTheaterStep(0);
+    const timers = THEATER_STAGES.slice(1).map((s, i) => setTimeout(() => setTheaterStep(i + 1), s.at));
     try {
       const res = await fetch("/api/refute", {
         method: "POST",
@@ -99,8 +82,48 @@ export default function Home() {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       if (data.diff && !diff.trim()) setDiff(data.diff); // 飛脚が運んできたdiffを表示
       setResult(data);
+      setTimeout(() => document.getElementById("judge-section")?.scrollIntoView({ behavior: "smooth" }), 150);
     } catch (e) {
       setError(e instanceof Error ? e.message : "反証の取得に失敗しました");
+    } finally {
+      timers.forEach(clearTimeout);
+      setLoading(false);
+    }
+  }
+
+  // 30秒デモ: サンプルdiff＋裁き済み状態を即座に表示（応答は「サンプル」と明示される）
+  async function startDemo() {
+    setDiff(SAMPLE_DIFF);
+    setService("billing-api");
+    setName("星野宇潮");
+    setPrUrl("");
+    setError(null);
+    setTegata(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/refute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ diff: SAMPLE_DIFF, service: "billing-api", target: "production", forceSample: true }),
+      });
+      const data: RefuteResponse = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setResult(data);
+      const demoReasons = [
+        "冪等キーをcharge呼び出しに付与するPR #124を先行マージ済み。二重課金は発生しない",
+        "DB側max_connections=200・アプリ2台構成で余裕あり。接続数70%の監視アラート設定済みのため受容",
+        "ordersは12万行・ステージング実測3.2秒。メンテナンスウィンドウ内で実行するよう手順に追記済み",
+        "決済APIのp99は820ms（直近30日）。1500msは十分な余裕だが月末ピークは監視する前提で受容",
+      ];
+      const verdicts: Disposition["verdict"][] = ["addressed", "accepted", "addressed", "accepted"];
+      const pre: Record<string, { verdict?: Disposition["verdict"]; reason: string }> = {};
+      (data.challenges || []).forEach((c: Challenge, i: number) => {
+        pre[c.id] = { verdict: verdicts[i % verdicts.length], reason: demoReasons[i % demoReasons.length] };
+      });
+      setJudgments(pre);
+      setTimeout(() => document.getElementById("judge-section")?.scrollIntoView({ behavior: "smooth" }), 200);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "デモの開始に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -128,6 +151,7 @@ export default function Home() {
           notExamined: result.notExamined,
           dispositions,
           source: result.source,
+          attest: result.attest,
         }),
       });
       const data = await res.json();
@@ -177,6 +201,20 @@ export default function Home() {
             <span>承認しない — LGTMを構造的に持たない</span>
             <span>網羅を名乗らない — 見ていないものを申告する</span>
             <span>判断を残す — 誰が・いつ・何を根拠に</span>
+          </div>
+          <p className="hero-motto">見たものには証拠を。見ていないものには、灰を。</p>
+          <div className="btn-row hero-actions">
+            <button className="btn btn-shu" onClick={startDemo} disabled={loading}>
+              ▶ 30秒でデモを見る
+            </button>
+            <a
+              className="hero-proof"
+              href="https://github.com/USHIKUNDESUYO/sekisho/pull/1"
+              target="_blank"
+              rel="noreferrer"
+            >
+              この関所は、作者自身も通しません — 本作のデプロイも PR #1 で「手形なし ❌ → 裁き → ✅」を経ています ↗
+            </a>
           </div>
         </div>
         <div className="hero-wave" aria-hidden />
@@ -232,12 +270,32 @@ export default function Home() {
             </button>
           </div>
           {error && <p className="err">{error}</p>}
+
+          {loading && (
+            <div className="theater" role="status">
+              {(usedPr
+                ? [{ agent: "飛脚", text: "飛脚がPRからdiffを取り寄せています…" }, ...THEATER_STAGES]
+                : THEATER_STAGES
+              ).map((s, i, rows) => {
+                const current = rows.length - THEATER_STAGES.length + theaterStep; // 飛脚行があれば+1ずれる
+                const done = i < current;
+                const active = i === current;
+                return (
+                  <div key={s.agent} className={`theater-row${done ? " done" : ""}${active ? " active" : ""}`}>
+                    <span className="theater-mark">{done ? "✓" : active ? "◉" : "○"}</span>
+                    <b className="theater-agent">{s.agent}</b>
+                    <span className="theater-text">{s.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
       {result && (
         <>
-          <section className="section">
+          <section className="section" id="judge-section">
             <h2 className="section-title">
               <span className="step">弐</span>裁く<span className="section-sub">番人の反証 {result.challenges.length}件・全件に理由が必要</span>
             </h2>

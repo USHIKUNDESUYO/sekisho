@@ -6,6 +6,13 @@ DevOps × AI Agent Hackathon 2026 応募作品（個人開発: 星野宇潮）
 
 ![concept](https://img.shields.io/badge/AI-%E6%89%BF%E8%AA%8D%E3%81%97%E3%81%AA%E3%81%84-b5402f) ![gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-1c3a5e) ![cloudrun](https://img.shields.io/badge/Cloud%20Run-%E3%81%A8%E3%81%A9%E3%81%91%E3%82%8B-1c3a5e)
 
+> **この関所は、作者自身も通しません。** 本リポジトリのデプロイも SEKISHO Gate を通ります —
+> [PR #1](https://github.com/USHIKUNDESUYO/sekisho/pull/1) に「通行手形なしでCI失敗 ❌ → 人間が反証を裁いて手形発行 → 再実行で通過 ✅」の実録が残っています。
+>
+> 🚪 **ライブデモ**: https://sekisho-98982533733.asia-northeast1.run.app （[30秒デモ](https://sekisho-98982533733.asia-northeast1.run.app/?demo=1)）
+>
+> *見たものには証拠を。見ていないものには、灰を。*
+
 ---
 
 ## 課題 — AIがコードを書き、AIがLGTMする時代の「責任の空白」
