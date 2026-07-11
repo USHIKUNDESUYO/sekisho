@@ -1,0 +1,17 @@
+# このリポジトリ自身がSEKISHOの関所で守られている（ドッグフーディング）。
+# PRのdiffに対する通行手形（人間が全反証を裁いた証跡）が台帳に無ければ、マージは止まる。
+name: SEKISHO Gate
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 関所を通る
+        uses: ./action
+        with:
+          sekisho-url: https://sekisho-98982533733.asia-northeast1.run.app

@@ -24,6 +24,7 @@ const VERDICT_LABEL: Record<Disposition["verdict"], string> = {
 
 export default function Home() {
   const [diff, setDiff] = useState("");
+  const [prUrl, setPrUrl] = useState("");
   const [service, setService] = useState("");
   const [target, setTarget] = useState("production");
   const [name, setName] = useState("");
@@ -54,10 +55,11 @@ export default function Home() {
       const res = await fetch("/api/refute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ diff, service, target }),
+        body: JSON.stringify({ diff, prUrl: prUrl.trim() || undefined, service, target }),
       });
-      const data: RefuteResponse = await res.json();
+      const data: RefuteResponse & { diff?: string } = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (data.diff && !diff.trim()) setDiff(data.diff); // 飛脚が運んできたdiffを表示
       setResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "反証の取得に失敗しました");
@@ -145,8 +147,20 @@ export default function Home() {
             id="diff"
             value={diff}
             onChange={(e) => setDiff(e.target.value)}
-            placeholder={"diff --git a/... b/...\n（右のボタンで架空サービスのサンプルdiffを読み込めます）"}
+            placeholder={"diff --git a/... b/...\n（下のボタンで架空サービスのサンプルdiffを読み込めます）"}
           />
+          <div style={{ marginTop: 12 }}>
+            <label className="fld" htmlFor="prurl">
+              または、公開PRのURL（飛脚がdiffを取り寄せます・diff欄が空のときに使われます）
+            </label>
+            <input
+              id="prurl"
+              type="text"
+              value={prUrl}
+              onChange={(e) => setPrUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo/pull/123"
+            />
+          </div>
           <div className="grid3">
             <div>
               <label className="fld" htmlFor="svc">サービス名</label>
@@ -162,7 +176,7 @@ export default function Home() {
             </div>
           </div>
           <div className="btn-row">
-            <button className="btn btn-primary" onClick={runRefute} disabled={loading || !diff.trim()}>
+            <button className="btn btn-primary" onClick={runRefute} disabled={loading || (!diff.trim() && !prUrl.trim())}>
               {loading ? "番人が読んでいます…" : "関所に掛ける"}
             </button>
             <button className="btn btn-ghost" onClick={() => setDiff(SAMPLE_DIFF)} disabled={loading}>

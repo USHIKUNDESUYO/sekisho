@@ -175,6 +175,7 @@ label.fld { display: block; font-size: 12.5px; color: #555; margin-bottom: 4px; 
 .agent-0 { color: #9fc3ef; }
 .agent-1 { color: #efb6a8; }
 .agent-2 { color: #b8d8b8; }
+.agent-3 { color: #e8d49a; }
 .trace-ms { margin-left: 8px; font-size: 11px; color: #8fa3b8; font-family: var(--mono); }
 .dropped { margin-top: 12px; border-top: 1px dashed #3a5474; padding-top: 10px; }
 .dropped-title { font-size: 12.5px; color: #f0c987; margin-bottom: 4px; }

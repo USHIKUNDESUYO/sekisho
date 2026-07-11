@@ -32,8 +32,8 @@ export type NotExamined = string[];
 
 /** エージェントの実行トレース1歩 */
 export interface AgentStep {
-  /** 番人=反証生成 / 目付=敵対的検証 / 照合方=機械照合 */
-  agent: "番人" | "目付" | "照合方";
+  /** 飛脚=diff調達 / 番人=反証生成 / 目付=敵対的検証 / 照合方=機械照合 */
+  agent: "飛脚" | "番人" | "目付" | "照合方";
   action: string;
   detail: string;
   ms: number;

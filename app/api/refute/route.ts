@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { refute, sampleRefute } from "@/lib/refute";
+import { fetchPrDiff } from "@/lib/hikyaku";
 import { sha256 } from "@/lib/ledger";
 
 export const runtime = "nodejs";
@@ -23,14 +24,32 @@ export async function POST(req: NextRequest) {
   if (rateLimited(ip)) {
     return NextResponse.json({ error: "レート制限中です。少し待ってからお試しください。" }, { status: 429 });
   }
-  let body: { diff?: string; service?: string; target?: string; forceSample?: boolean };
+  let body: { diff?: string; prUrl?: string; service?: string; target?: string; forceSample?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
-  const diff = (body.diff || "").trim();
-  if (!diff) return NextResponse.json({ error: "diffが空です" }, { status: 400 });
+
+  // 飛脚: PR URLが渡されたら、diffを自分で取りに行く
+  let diff = (body.diff || "").trim();
+  const hikyakuTrace = [];
+  if (!diff && body.prUrl) {
+    const t = Date.now();
+    try {
+      const fetched = await fetchPrDiff(body.prUrl);
+      diff = fetched.diff.trim();
+      hikyakuTrace.push({
+        agent: "飛脚" as const,
+        action: "PRからdiffを取得",
+        detail: `${fetched.source} から ${diff.length.toLocaleString()}字のdiffを運んだ`,
+        ms: Date.now() - t,
+      });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "PR取得に失敗しました" }, { status: 422 });
+    }
+  }
+  if (!diff) return NextResponse.json({ error: "diffが空です（diff本文かPRのURLを入れてください）" }, { status: 400 });
   if (diff.length > 200_000) return NextResponse.json({ error: "diffが大きすぎます(200KB上限)" }, { status: 413 });
 
   const context = {
@@ -39,12 +58,14 @@ export async function POST(req: NextRequest) {
   };
   try {
     const result = body.forceSample ? sampleRefute(diff) : await refute(diff, context);
-    return NextResponse.json({ ...result, diffSha256: sha256(diff) });
+    return NextResponse.json({ ...result, trace: [...hikyakuTrace, ...result.trace], diff, diffSha256: sha256(diff) });
   } catch (e) {
     // ライブ呼び出しが失敗してもデモは止めない（正直にsourceで申告する）
     const fallback = sampleRefute(diff);
     return NextResponse.json({
       ...fallback,
+      trace: [...hikyakuTrace, ...fallback.trace],
+      diff,
       diffSha256: sha256(diff),
       warning: `AI呼び出しに失敗したためサンプル応答を返しました: ${e instanceof Error ? e.message : "unknown"}`,
     });

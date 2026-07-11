@@ -34,6 +34,7 @@ SEKISHOは、CI/CDパイプラインの前に立つ**関所**です。ふつう�
 
 ```mermaid
 flowchart LR
+    Z[公開PRのURL] -->|飛脚が自分でdiffを取りに行く| A
     A[diff + デプロイ文脈] --> B[番人 Gemini<br/>反証を生成<br/>証拠アンカー必須]
     B --> C[目付 Gemini<br/>反証を敵対的に検証<br/>diffから導けない反証を自律棄却]
     C --> D[照合方 機械<br/>引用アンカーをdiff本文と突合<br/>捏造を棄却]
@@ -42,6 +43,7 @@ flowchart LR
     F --> G[GitHub Actions<br/>手形がなければ403で停止]
 ```
 
+- **飛脚**（機械）: 公開PRのURLを渡すと、diffを自分で取りに行く（GitHub API・公開リポジトリのみ）
 - **番人**（Gemini）: diffを読み、署名者が見落としているかもしれない点への反証を生成
 - **目付**（Gemini）: 番人の反証を**敵対的に検証**し、誤読・飛躍・一般論の水増しを自律的に棄却（棄却理由はUIに透明表示）
 - **照合方**（機械）: 証拠アンカーの引用がdiff本文に実在するか突合し、ハルシネーションを構造的に排除
@@ -52,7 +54,7 @@ flowchart LR
 | コンセプト | 実装 |
 |---|---|
 | つくる | Gemini API（gemini-2.5-flash）による二段エージェント＋Next.js (App Router) |
-| まわす | GitHub Actions ゲート（`action/action.yml`）— 通行手形のないdiffはCIで403停止。反証→裁き→証跡のループが開発フローに組み込まれる |
+| まわす | GitHub Actions ゲート（`action/action.yml`）— 通行手形のないdiffはCIで403停止。**このリポジトリ自身が自分の関所で守られています**（`.github/workflows/gate.yml`・PRを開くと実際にゲートが走ります） |
 | とどける | **Cloud Run**（Dockerfile / standalone出力）＋ **Firestore**（手形台帳の永続化・ハッシュチェーン） |
 
 ## 使い方（3分デモ）
