@@ -1,0 +1,36 @@
+name: "SEKISHO Gate"
+description: >
+  反証専従デプロイ関所ゲート。このPRのdiffに対する「通行手形」（人間が全反証を裁いた証跡）が
+  関所の台帳に存在しなければジョブを失敗させ、マージ/デプロイを止めます。
+  SEKISHOが承認するのではありません — 人間の判断記録が存在することだけを確認します。
+inputs:
+  sekisho-url:
+    description: "SEKISHOサーバーのURL（例: https://sekisho.example.com）"
+    required: true
+  base-ref:
+    description: "diffの比較元（既定: origin/main）"
+    required: false
+    default: "origin/main"
+runs:
+  using: "composite"
+  steps:
+    - name: Compute diff hash and ask the gate
+      shell: bash
+      run: |
+        set -euo pipefail
+        git fetch origin main --depth=50 || true
+        DIFF=$(git diff "${{ inputs.base-ref }}"...HEAD)
+        if [ -z "$DIFF" ]; then
+          echo "diffが空です。関所は素通りです。"
+          exit 0
+        fi
+        HASH=$(printf '%s' "$DIFF" | sha256sum | cut -d' ' -f1)
+        echo "diff sha256: $HASH"
+        STATUS=$(curl -s -o /tmp/gate.json -w '%{http_code}' "${{ inputs.sekisho-url }}/api/gate?diffSha256=$HASH")
+        cat /tmp/gate.json
+        if [ "$STATUS" != "200" ]; then
+          echo ""
+          echo "::error::通行手形がありません。SEKISHO（${{ inputs.sekisho-url }}）でこのdiffの反証を裁いてください。"
+          exit 1
+        fi
+        echo "通行手形を確認しました。関を開きます。"
