@@ -49,7 +49,17 @@ export default async function LedgerPage() {
               {t.prevHash === "GENESIS" ? " — 初番：この手形で本体のデプロイ(PR #1)が通行した" : ""}
             </summary>
             <div className="ledger-detail">
-              <p>裁き手: {[...new Set(t.dispositions.map((d) => d.decidedBy))].join(", ")}</p>
+              <p>
+                裁き手: {[...new Set(t.dispositions.map((d) => d.decidedBy))].join(", ")}
+                {"　"}
+                {t.reviewerAttested ? (
+                  <span className="ok-badge">✓ 本番ゲート資格あり（{t.reviewerName}）</span>
+                ) : (
+                  <span className="ng-badge">✗ 未認証の裁き（本番ゲート不通過）</span>
+                )}
+                {t.selfApproved ? <span className="ng-badge">　⚠ 自己承認</span> : null}
+              </p>
+              <p>変更者: {t.context.requestedBy || "—"}</p>
               <p>diff SHA-256: <code>{t.diffSha256}</code></p>
               <ul style={{ marginLeft: 20, marginTop: 8 }}>
                 {t.challenges.map((c) => {

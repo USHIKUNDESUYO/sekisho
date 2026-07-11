@@ -32,6 +32,8 @@ const VERDICT_LABEL: Record<Disposition["verdict"], string> = {
 export default function Home() {
   const [diff, setDiff] = useState("");
   const [prUrl, setPrUrl] = useState("");
+  const [changeAuthor, setChangeAuthor] = useState("");
+  const [reviewerToken, setReviewerToken] = useState("");
   const [service, setService] = useState("");
   const [target, setTarget] = useState("production");
   const [name, setName] = useState("");
@@ -95,7 +97,9 @@ export default function Home() {
   async function startDemo() {
     setDiff(SAMPLE_DIFF);
     setService("billing-api");
-    setName("星野宇潮");
+    setName("星野宇潮（署名レビュアー）");
+    setChangeAuthor("開発担当（AIエージェント支援）");
+    setReviewerToken("demo-reviewer-2026");
     setPrUrl("");
     setError(null);
     setTegata(null);
@@ -145,13 +149,18 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          context: { service: service || "unnamed-service", target, requestedBy: name.trim() || "anonymous" },
+          context: {
+            service: service || "unnamed-service",
+            target,
+            requestedBy: changeAuthor.trim() || "unknown-author",
+          },
           diffSha256: result.diffSha256,
           challenges: result.challenges,
           notExamined: result.notExamined,
           dispositions,
           source: result.source,
           attest: result.attest,
+          reviewerToken: reviewerToken.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -382,7 +391,22 @@ export default function Home() {
               <span className="step">参</span>通す<span className="section-sub">通行手形の発行</span>
             </h2>
             <div className="card">
-              <p className="progress">
+              <div className="grid3" style={{ marginTop: 0 }}>
+                <div>
+                  <label className="fld" htmlFor="author">変更者（この diff を書いた人／AI）</label>
+                  <input id="author" type="text" value={changeAuthor} onChange={(e) => setChangeAuthor(e.target.value)} placeholder="裁き手と別人であること＝職務分掌" />
+                </div>
+                <div>
+                  <label className="fld" htmlFor="rtoken">レビュアートークン（本番ゲート用）</label>
+                  <input id="rtoken" type="text" value={reviewerToken} onChange={(e) => setReviewerToken(e.target.value)} placeholder="このデモは demo-reviewer-2026" />
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                  <p className="fld" style={{ margin: 0, lineHeight: 1.5 }}>
+                    トークン無しでも手形は台帳に残りますが、<b>本番ゲートは開きません</b>（未認証の裁き＝AI/自動承認を排除）。
+                  </p>
+                </div>
+              </div>
+              <p className="progress" style={{ marginTop: 16 }}>
                 裁き済み <b>{decidedCount}</b> / {result.challenges.length} 件
                 {!allDecided && " — 全ての反証に裁きと理由が揃うまで、関は開きません。"}
               </p>
@@ -409,6 +433,15 @@ export default function Home() {
                     <dd>{tegata.prevHash}</dd>
                     <dt>裁き手</dt>
                     <dd>{[...new Set(tegata.dispositions.map((d) => d.decidedBy))].join(", ")}</dd>
+                    <dt>本番ゲート資格</dt>
+                    <dd>
+                      {tegata.reviewerAttested ? (
+                        <span className="ok-badge">✓ 認証済み（{tegata.reviewerName}）</span>
+                      ) : (
+                        <span className="ng-badge">✗ 未認証の裁き — 台帳には残るが本番ゲートは開かない</span>
+                      )}
+                      {tegata.selfApproved ? <span className="ng-badge">　⚠ 自己承認</span> : null}
+                    </dd>
                   </dl>
                   <div className="btn-row">
                     <button className="btn btn-ghost" onClick={downloadTegata}>証跡JSONをダウンロード</button>

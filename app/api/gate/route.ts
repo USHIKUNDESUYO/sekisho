@@ -31,11 +31,31 @@ export async function GET(req: NextRequest) {
       { status: 403 },
     );
   }
+  // 未認証の裁き（curl等でdispositionを注入した手形）は本番ゲートを開けない。
+  // 「判断は人に」を担保する最後の関門: 登録レビュアーの署名が要る。
+  if (!tegata.reviewerAttested) {
+    return NextResponse.json(
+      {
+        pass: false,
+        reason:
+          "この手形は未認証の裁きです。本番ゲートを開けるのは登録レビュアーが署名した裁きのみ（AIやスクリプトによる自動承認を構造的に排除）。",
+      },
+      { status: 403 },
+    );
+  }
+  // 職務分掌: 変更者と裁き手が同一の自己承認は既定で拒否
+  if (tegata.selfApproved && process.env.SEKISHO_GATE_ALLOW_SELF_APPROVAL !== "1") {
+    return NextResponse.json(
+      { pass: false, reason: "自己承認（変更者と裁き手が同一）です。職務分掌のため別のレビュアーの裁きが要ります。" },
+      { status: 403 },
+    );
+  }
   return NextResponse.json({
     pass: true,
     tegataId: tegata.id,
     issuedAt: tegata.issuedAt,
     decidedBy: [...new Set(tegata.dispositions.map((d) => d.decidedBy))],
+    reviewer: tegata.reviewerName,
     recordHash: tegata.recordHash,
   });
 }

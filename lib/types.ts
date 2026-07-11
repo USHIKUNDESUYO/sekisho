@@ -70,6 +70,12 @@ export interface Tegata {
   notExamined: NotExamined;
   dispositions: Disposition[];
   source: "live" | "sample";
+  /** 本番ゲートを開ける資格: 登録レビュアーの署名で裁かれたか */
+  reviewerAttested: boolean;
+  /** 認証されたレビュアー名（未認証はnull） */
+  reviewerName: string | null;
+  /** 職務分掌: 変更者(requestedBy)と裁き手(decidedBy)が同一なら自己承認 */
+  selfApproved: boolean;
   /** チェーン: 直前の手形のrecordHash（初回はGENESIS） */
   prevHash: string;
   /** この手形全体（prevHashまで含む正規化JSON）のSHA-256 */

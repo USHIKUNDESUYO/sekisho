@@ -88,6 +88,8 @@ export interface IssueInput {
   notExamined: NotExamined;
   dispositions: Disposition[];
   source: Tegata["source"];
+  reviewerAttested: boolean;
+  reviewerName: string | null;
 }
 
 /** 全反証が裁かれていることを検証してから手形を発行する。未裁きが残れば発行不可 */
@@ -111,6 +113,9 @@ export async function issueTegata(input: IssueInput): Promise<Tegata> {
   const ledger = await store.readAll();
   const prevHash = ledger.length ? ledger[ledger.length - 1].recordHash : GENESIS;
 
+  const selfApproved = input.dispositions.some(
+    (d) => d.decidedBy.trim() && d.decidedBy.trim() === input.context.requestedBy.trim(),
+  );
   const body = {
     id: randomUUID(),
     issuedAt: new Date().toISOString(),
@@ -120,6 +125,9 @@ export async function issueTegata(input: IssueInput): Promise<Tegata> {
     notExamined: input.notExamined,
     dispositions: input.dispositions,
     source: input.source,
+    reviewerAttested: input.reviewerAttested,
+    reviewerName: input.reviewerName,
+    selfApproved,
     prevHash,
   };
   const recordHash = sha256(canonicalize(body));

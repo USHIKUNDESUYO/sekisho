@@ -27,12 +27,14 @@ const disposition = (challengeId: string) => ({
   decidedAt: new Date().toISOString(),
 });
 const input = (diffSha: string, cid: string) => ({
-  context: { service: "test", target: "test", requestedBy: "test" },
+  context: { service: "test", target: "test", requestedBy: "変更者テスト" },
   diffSha256: diffSha,
   challenges: [challenge(cid)],
   notExamined: ["テストの灰"],
   dispositions: [disposition(cid)],
   source: "sample" as const,
+  reviewerAttested: true,
+  reviewerName: "テストレビュアー",
 });
 
 test("canonicalize はキー順に依存しない", () => {
@@ -45,14 +47,31 @@ test("未裁きの反証が残っていると手形は発行できない", async
   await assert.rejects(() => issueTegata(bad), /未裁き/);
 });
 
+test("職務分掌: 変更者と裁き手が同一なら selfApproved フラグが立つ", async () => {
+  const selfIn = input(sha256("diff-self"), "cs");
+  selfIn.context = { service: "t", target: "t", requestedBy: "同一人物" };
+  selfIn.dispositions = [{ ...disposition("cs"), decidedBy: "同一人物" }];
+  const t = await issueTegata(selfIn);
+  assert.equal(t.selfApproved, true);
+});
+
 test("手形はチェーンになり、検証を通る", async () => {
   const t1 = await issueTegata(input(sha256("diff-1"), "c1"));
   const t2 = await issueTegata(input(sha256("diff-2"), "c2"));
-  assert.equal(t1.prevHash, GENESIS);
+  // 各手形は直前の手形のrecordHashを抱く（鎖の連結）
   assert.equal(t2.prevHash, t1.recordHash);
   const v = await verifyLedger();
   assert.equal(v.ok, true);
-  assert.equal(v.count, 2);
+  assert.ok(v.count >= 2);
+});
+
+test("最初の手形のprevHashはGENESIS", async () => {
+  // 独立したデータディレクトリで初番を確認
+  const prev = process.env.SEKISHO_DATA_DIR;
+  process.env.SEKISHO_DATA_DIR = mkdtempSync(path.join(tmpdir(), "sekisho-genesis-"));
+  const first = await issueTegata(input(sha256("diff-genesis"), "cg"));
+  assert.equal(first.prevHash, GENESIS);
+  process.env.SEKISHO_DATA_DIR = prev;
 });
 
 test("反証ゼロの手形は発行できない（偽造封鎖）", async () => {

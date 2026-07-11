@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issueTegata } from "@/lib/ledger";
 import { verifyRefutation } from "@/lib/attest";
+import { resolveReviewer } from "@/lib/reviewer";
 import type { Challenge, Disposition, NotExamined } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
     dispositions?: Disposition[];
     source?: "live" | "sample";
     attest?: string;
+    reviewerToken?: string;
   };
   try {
     body = await req.json();
@@ -43,6 +45,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // レビュアー認証: 本番ゲートを開ける資格を持つ人間の署名か
+  const reviewer = resolveReviewer(req.headers.get("authorization") || body.reviewerToken);
+
   try {
     const now = new Date().toISOString();
     const tegata = await issueTegata({
@@ -57,6 +62,8 @@ export async function POST(req: NextRequest) {
       // decidedAt はサーバー刻印（クライアントの自称時刻は信じない）
       dispositions: body.dispositions.map((d) => ({ ...d, decidedAt: now })),
       source,
+      reviewerAttested: reviewer.attested,
+      reviewerName: reviewer.name,
     });
     return NextResponse.json({ tegata });
   } catch (e) {
