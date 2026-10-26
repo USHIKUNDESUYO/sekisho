@@ -150,6 +150,7 @@ body {
   border-right: 1px solid rgba(216, 194, 148, 0.35); padding-right: 12px;
   pointer-events: none;
 }
+@media (max-width: 640px) { .hero-vertical { display: none; } }
 .hero-wave {
   position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; height: 84px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='60' viewBox='0 0 120 60'%3E%3Cg fill='none' stroke='%23d8c294' stroke-opacity='0.22'%3E%3Cg stroke-width='1.4'%3E%3Ccircle cx='30' cy='62' r='28'/%3E%3Ccircle cx='30' cy='62' r='21'/%3E%3Ccircle cx='30' cy='62' r='14'/%3E%3Ccircle cx='30' cy='62' r='7'/%3E%3Ccircle cx='90' cy='62' r='28'/%3E%3Ccircle cx='90' cy='62' r='21'/%3E%3Ccircle cx='90' cy='62' r='14'/%3E%3Ccircle cx='90' cy='62' r='7'/%3E%3Ccircle cx='0' cy='34' r='28'/%3E%3Ccircle cx='0' cy='34' r='21'/%3E%3Ccircle cx='0' cy='34' r='14'/%3E%3Ccircle cx='0' cy='34' r='7'/%3E%3Ccircle cx='60' cy='34' r='28'/%3E%3Ccircle cx='60' cy='34' r='21'/%3E%3Ccircle cx='60' cy='34' r='14'/%3E%3Ccircle cx='60' cy='34' r='7'/%3E%3Ccircle cx='120' cy='34' r='28'/%3E%3Ccircle cx='120' cy='34' r='21'/%3E%3Ccircle cx='120' cy='34' r='14'/%3E%3Ccircle cx='120' cy='34' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
