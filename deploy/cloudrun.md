@@ -36,3 +36,8 @@ gcloud run deploy sekisho \
 - Cloud Run のサービスアカウントに Firestore 権限（`roles/datastore.user`）が必要。
   既定のCompute サービスアカウントは通常プロジェクト編集者権限を持つためそのまま動く。
 - Gemini APIの無料枠でも動作する（1リクエストで2回のGemini呼び出し: 番人＋目付）。
+
+## 運用メモ
+
+- 台帳のバックアップ: Firestoreの`sekisho-tegata`コレクションをエクスポートする
+- レート制限: /api/refute は 20回/10分/IP
